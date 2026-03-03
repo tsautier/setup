@@ -447,3 +447,45 @@ The **MCP client SDK** (e.g. `@modelcontextprotocol/sdk`) handles the HTTP reque
 | MCP Client | Detecting 401 and refreshing expired access tokens (`grant_type=refresh_token`) |
 | LLM | Does **nothing** with auth - it only sees tool schemas and results |
 | Agent framework (e.g., LangChain, Semantic Kernel) | Instantiates/configures the MCP client but delegates all OAuth to it |
+
+## 3. Remote MCP server sequence diagram
+
+```mermaid
+sequenceDiagram
+  participant A as User/Agent
+  participant B as MCP client
+  participant C as MCP server
+  participant D as Identity provider
+  A->>B: Agent decides to use<br>a tool based on user prompt
+  B->>C: POST /MCP
+  C->>B: 401 Unauthorized
+  B->>C: GET /.well-known/oauth-protected-resource
+  C->>B: resource metadata
+  B->>D: GET /.well-known/oauth-authorization-server
+  D->>B: identity provider metadata
+  rect rgb(32, 32, 32)
+  note over A,D: Authorization code flow
+    B->>A: open browser
+    A->>D: GET /authorize with PKCE challenge and sign in
+    D->>A: authorization code
+    A->>B: authorization code
+    B->>D: POST /token with authorization code + PKCE verifier
+    D->>B: access + refresh tokens
+  end
+  rect rgb(32, 32, 32)
+  note over B,C: MCP server initialization
+    B->>C: POST /mcp (initialize, bearer token)
+    C->>B: 200 {Mcp-Session-Id, capabilities, serverInfo}
+    B->>C: POST /mcp (notifications/initialized)
+    C->>B: 202 Accepted
+    B->>C: POST /mcp (tools/list)
+    C->>B: 200 {tools: [{name, inputSchema}]}
+  end
+  B->>C: POST /mcp (tools/call, parameters)
+  C->>B: 200 {content: [{type, text}]} or SSE stream
+  B->>C: POST GET /mcp (open SSE stream)
+  C->>B: server-initiated notifications
+  B->>A: Tool result
+  B->>C: DELETE /mcp (end session)
+  C->>B: 200 OK
+```
