@@ -7,7 +7,7 @@ After=postgres.service
 
 [Container]
 ContainerName=n8n
-Image=docker.n8n.io/n8nio/n8n:latest
+Image=docker.io/n8nio/n8n:latest
 Network=lab.network
 Volume=n8n.volume:/home/node/.n8n:Z
 Environment=GENERIC_TIMEZONE=Asia/Singapore

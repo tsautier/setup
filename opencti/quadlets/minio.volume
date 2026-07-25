@@ -4,6 +4,8 @@ After=network.target
 
 [Volume]
 VolumeName=s3data
+User=65532
+Group=65532
 
 [Install]
 WantedBy=multi-user.target
